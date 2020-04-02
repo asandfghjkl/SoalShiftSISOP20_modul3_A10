@@ -69,6 +69,20 @@ int main(int argc, char *argv[]) {
 			pthread_join(tid[j], NULL);
 	}
 	else if(strcmp(argv[1], "-d") == 0) {
+		int i=0;
+                DIR *dir = opendir(argv[2]);
+                struct dirent *tmp;
+		while((dir!=NULL) && (tmp=readdir(dir))) {
+                        if(strcmp(tmp->d_name, ".")==0 || strcmp(tmp->d_name, "..")==0 || strcmp(tmp->d_name, "soal3.c")==0 || strcmp(tmp->d_name, "soal3")==0 || tmp->d_type==DT_DIR) continue;
+
+                        err = pthread_create(&tid[i], NULL, movefile, tmp->d_name);
+                        if(err != 0) printf("\ncan't create thread : [%s]",strerror(err));
+                        i++;
+                }
+                for(int j=0; j<i; j++)
+                        pthread_join(tid[j], NULL);
+                closedir(dir);
+
 	}
 	else if((argv[1][0]=='*') && (strlen(argv[1])==1)) {
 		int i=0;
@@ -79,7 +93,6 @@ int main(int argc, char *argv[]) {
                         err = pthread_create(&tid[i], NULL, movefile, tmp->d_name);
                         if(err != 0) printf("\ncan't create thread : [%s]",strerror(err));
 			i++;
-//printf("success\n");
 		}
 		for(int j=0; j<i; j++)
 			pthread_join(tid[j], NULL);
