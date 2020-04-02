@@ -4,20 +4,22 @@
 #include<pthread.h>
 #include<stdlib.h>
 #include<unistd.h>
+#include<dirent.h>
+#include<sys/stat.h>
 #include<sys/types.h>
 #include<sys/wait.h>
 
-pthread_t tid[3]; 	// inisialisasi array untuk menampung thread dalam kasus ini ada 2 thread
+pthread_t tid[1000000];
 pid_t child;
-char cwd[100];
+char cwd[1000];
 
 void *movefile(void *arg) {
-	char *filename = (char *)arg;
+	char *filepath = (char *)arg;
 
 	// cek ekstensi file
 	int dot = '.';
         char *extension = NULL;
-	extension = strrchr(filename, dot);
+	extension = strrchr(filepath, dot);
 
 	char extlower[1000];
 	memset(extlower, '\0', sizeof(extlower));
@@ -29,31 +31,24 @@ void *movefile(void *arg) {
 	}
 	else strcpy(extlower, "Unknown");
 
-        char folderpath[1000];
-        memset(folderpath, '\0', sizeof(folderpath));
-	strcpy(folderpath, cwd); 	// letak file soal3.c
+	// simpan nama file
+        int slash = '/';
+        char *filename = NULL;
+        filename = strrchr(filepath, slash);
+        if(filename) filename++;
+	else filename = filepath;
+
+	// buat directory
+	char folderpath[1000];
+	strcpy(folderpath, cwd);
 	strcat(folderpath, "/");
-        strcat(folderpath, extlower);
+	strcat(folderpath, extlower);
+	mkdir(folderpath, S_IRWXU);
+        strcat(folderpath, "/");
+        strcat(folderpath, filename);
 
-	// printf("%s - %s - %s\n", filename, extlower, folderpath);
-
-	char *argv1[] = {"mkdir", "-p", folderpath, NULL};
-	char *argv2[] = {"mv", filename, folderpath, NULL};
-
-	pthread_t id = pthread_self();
-	if(pthread_equal(id,tid[0])) { 		// buat directory
-		child = fork();
-		if (child==0) {
-		    execv("/bin/mkdir", argv1);
-	    	}
-	}
-	else if(pthread_equal(id,tid[1])) {	// pindahkan file
-        	sleep(1);
-		child = fork();
-        	if (child==0) {
-		    execv("/bin/mv", argv2);
-	    	}
-	}
+	// move file
+	rename(filepath, folderpath);
 
 	return NULL;
 }
@@ -67,15 +62,28 @@ int main(int argc, char *argv[]) {
 	}
 	if(strcmp(argv[1], "-f") == 0) {
 		for(int i=2; i<argc; i++) {
-			for(int j=0; j<2; j++) {
-				err = pthread_create(&tid[j], NULL, movefile, (void *)argv[i]);
-				if(err != 0) printf("\ncan't create thread : [%s]",strerror(err));
-			}
-			pthread_join(tid[0], NULL);
-			pthread_join(tid[1], NULL);
+			err = pthread_create(&tid[i], NULL, movefile, (void *)argv[i]);
+			if(err != 0) printf("\ncan't create thread : [%s]",strerror(err));
 		}
+		for(int j=2; j<argc; j++)
+			pthread_join(tid[j], NULL);
 	}
 	else if(strcmp(argv[1], "-d") == 0) {
+	}
+	else if((argv[1][0]=='*') && (strlen(argv[1])==1)) {
+		int i=0;
+		DIR *dir = opendir(cwd);
+		struct dirent *tmp;
+		while((dir!=NULL) && (tmp=readdir(dir))) {
+			if(strcmp(tmp->d_name, ".")==0 || strcmp(tmp->d_name, "..")==0 || strcmp(tmp->d_name, "soal3.c")==0 || strcmp(tmp->d_name, "soal3")==0 || tmp->d_type==DT_DIR) continue;
+                        err = pthread_create(&tid[i], NULL, movefile, tmp->d_name);
+                        if(err != 0) printf("\ncan't create thread : [%s]",strerror(err));
+			i++;
+//printf("success\n");
+		}
+		for(int j=0; j<i; j++)
+			pthread_join(tid[j], NULL);
+		closedir(dir);
 	}
 	return 0;
 }
