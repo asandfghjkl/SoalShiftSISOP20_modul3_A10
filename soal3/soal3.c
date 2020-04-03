@@ -12,6 +12,7 @@
 pthread_t tid[1000000];
 pid_t child;
 char cwd[1000];
+char folder[1000];
 
 void *movefile(void *arg) {
 	char *filepath = (char *)arg;
@@ -38,24 +39,41 @@ void *movefile(void *arg) {
         if(filename) filename++;
 	else filename = filepath;
 
-	// buat directory
 	char folderpath[1000];
 	strcpy(folderpath, cwd);
 	strcat(folderpath, "/");
 	strcat(folderpath, extlower);
+
+	// buat directory
 	mkdir(folderpath, S_IRWXU);
-        strcat(folderpath, "/");
-        strcat(folderpath, filename);
 
-	// move file
-	rename(filepath, folderpath);
+	if(strlen(folder) > 1) {		// untuk opsi -d
+		char fullname[1000];
+		strcpy(fullname, folder);
+		strcat(fullname, "/");
+		strcat(fullname, filename);
 
+		strcat(folderpath, "/");
+                strcat(folderpath, filename);
+
+                // move file
+                rename(fullname, folderpath);
+	}
+	else {					// untuk opsi lain
+	        strcat(folderpath, "/");
+        	strcat(folderpath, filename);
+
+		// move file
+		rename(filepath, folderpath);
+	}
 	return NULL;
 }
 
 int main(int argc, char *argv[]) {
 	getcwd(cwd, sizeof(cwd));
 	int err;
+	memset(folder, '\0', sizeof(folder));
+
 	if(argc < 2) {
 		printf("argumen invalid");
 		return 0;
@@ -68,10 +86,22 @@ int main(int argc, char *argv[]) {
 		for(int j=2; j<argc; j++)
 			pthread_join(tid[j], NULL);
 	}
-	else if(strcmp(argv[1], "-d") == 0) {
+	else {
+		DIR *dir;
+		struct dirent *tmp;
 		int i=0;
-                DIR *dir = opendir(argv[2]);
-                struct dirent *tmp;
+		if(strcmp(argv[1], "-d") == 0) {
+                	dir = opendir(argv[2]);
+			strcpy(folder, argv[2]);
+		}
+		else if((argv[1][0]=='*') && (strlen(argv[1])==1)) {
+			dir = opendir(cwd);
+		}
+		else {
+			printf("argumen invalid");
+                	return 0;
+		}
+
 		while((dir!=NULL) && (tmp=readdir(dir))) {
                         if(strcmp(tmp->d_name, ".")==0 || strcmp(tmp->d_name, "..")==0 || strcmp(tmp->d_name, "soal3.c")==0 || strcmp(tmp->d_name, "soal3")==0 || tmp->d_type==DT_DIR) continue;
 
@@ -83,20 +113,6 @@ int main(int argc, char *argv[]) {
                         pthread_join(tid[j], NULL);
                 closedir(dir);
 
-	}
-	else if((argv[1][0]=='*') && (strlen(argv[1])==1)) {
-		int i=0;
-		DIR *dir = opendir(cwd);
-		struct dirent *tmp;
-		while((dir!=NULL) && (tmp=readdir(dir))) {
-			if(strcmp(tmp->d_name, ".")==0 || strcmp(tmp->d_name, "..")==0 || strcmp(tmp->d_name, "soal3.c")==0 || strcmp(tmp->d_name, "soal3")==0 || tmp->d_type==DT_DIR) continue;
-                        err = pthread_create(&tid[i], NULL, movefile, tmp->d_name);
-                        if(err != 0) printf("\ncan't create thread : [%s]",strerror(err));
-			i++;
-		}
-		for(int j=0; j<i; j++)
-			pthread_join(tid[j], NULL);
-		closedir(dir);
 	}
 	return 0;
 }
