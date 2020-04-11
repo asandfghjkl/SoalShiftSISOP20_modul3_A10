@@ -49,3 +49,9 @@ Program ini menerima data hasil perkalian dari matriks 4a dengan menggunakan sha
 
 Program ini akan membuat 1 pipe agar memungkinkan program untuk transfer data dari program 1 ke program lainnya. Program akan melakukan fork agar memungkinkan terjadinya 2 proses secara bersamaan. Di parent process, program akan menjalankan perintah `ls` dan memasukkan hasilnya ke pipe yang akan dibaca oleh child process. Child process menunggu data dari pipe yang ditulis oleh parent dan menghitung jumlah file dengan menggunakan perintah `ls -h`. 
 
+Hasil Run:
+
+
+* [Hasil run 4a dan 4b](https://github.com/asandfghjkl/SoalShiftSISOP20_modul3_A10/blob/master/soal4/Run%204a%20dan%204b.png)
+* [Hasil run 4c](https://github.com/asandfghjkl/SoalShiftSISOP20_modul3_A10/blob/master/soal4/run%204c.png)
+
